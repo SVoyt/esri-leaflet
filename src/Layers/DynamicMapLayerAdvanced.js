@@ -21,12 +21,11 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     f: 'json'
   },
 
-  //fixed
   initialize: function (options) {
     options.url = cleanUrl(options.url);
     this.service = mapService(options);
     this.service.addEventParent(this);
-    this._zoomAnimated = true;
+
     if ((options.proxy || options.token) && options.f !== 'json') {
       options.f = 'json';
     }
@@ -35,18 +34,20 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     this._update = L.Util.throttle(this._update, this.options.updateInterval, this);
   },
 
-  //fixed from rasterlayer
   onAdd: function (map) {
     map.on('moveend', this._update, this);
 
     if ((!this._singleImages) || (this._singleImages.length==0)){
       this._update();
     }
-    else{
-      
+    else {
+      this._forAllSingleImages( 
+        function(img) { 
+          this._resetImagePosition(img);
+          this.getPane(this.options.pane).appendChild(img);
+        }
+      );
     }
-
-    
 
     if (this._popup) {
       this._map.on('click', this._getPopupData, this);
@@ -54,8 +55,15 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     }
   },
 
-  //fixed from rasterlayer
   onRemove: function () {
+    this._forAllSingleImages( 
+      function(img) { 
+        if (this.options.interactive) {
+          this.removeInteractiveTarget(img);
+        }
+        this.getPane(this.options.pane).removeChild(img); 
+      }
+    );
     if (this._popup) {
       this._map.off('click', this._getPopupData, this);
       this._map.off('dblclick', this._resetPopupState, this);
@@ -64,7 +72,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     this._map.off('moveend', this._update, this);
   },
 
-  //fixed
   getEvents: function () {
     var events = {
       zoom: this._reset,
@@ -78,7 +85,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return events;
   },
 
-  //fixed
   _animateZoom: function (e) {
     this._forAllSingleImages(
       function(img){
@@ -89,79 +95,66 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     );  
   },
 
-  //fixed
   _reset: function () {
     this._forAllSingleImages(
       function(img){
-        this._setImagePosition(img, img.position);
+        this._resetImagePosition(img);
       }
     );
   },
 
-  //old
   getDynamicLayers: function () {
     return this.options.dynamicLayers;
   },
 
-  //old
   setDynamicLayers: function (dynamicLayers) {
     this.options.dynamicLayers = dynamicLayers;
     this._update();
     return this;
   },
 
-  //old
   getLayers: function () {
     return this.options.layers;
   },
 
-  //old
   setLayers: function (layers) {
     this.options.layers = layers;
     this._update();
     return this;
   },
 
-  //old
   getLayerDefs: function () {
     return this.options.layerDefs;
   },
 
-  //old
   setLayerDefs: function (layerDefs) {
     this.options.layerDefs = layerDefs;
     this._update();
     return this;
   },
 
-  //old
   getTimeOptions: function () {
     return this.options.timeOptions;
   },
 
-  //old
   setTimeOptions: function (timeOptions) {
     this.options.timeOptions = timeOptions;
     this._update();
     return this;
   },
 
-  //old
   query: function () {
     return this.service.query();
   },
 
-  //old
   identify: function () {
     return this.service.identify();
   },
 
-  //old
   find: function () {
     return this.service.find();
   },
 
-  //fixed from rasterlayer
   bringToFront: function () {
     this.options.position = 'front';
     this._forAllSingleImages(
@@ -172,7 +165,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return this;
   },
 
-  //fixed from rasterlayer
   bringToBack: function () {
     this.options.position = 'back';
     this._forAllSingleImages(
@@ -183,17 +175,23 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return this;
   },
 
-  //old from rasterlayer
+  setZIndex: function(zIndex){
+    this.options.zIndex = zIndex;
+    this._forAllSingleImages(
+      function(img){
+        img.style.zIndex = zIndex;
+      }
+    );
+  },
+
   getAttribution: function () {
     return this.options.attribution;
   },
 
-  //old from rasterlayer
   getOpacity: function () {
     return this.options.opacity;
   },
 
-  //fixed from rasterlayer
   setOpacity: function (opacity) {
     this.options.opacity = opacity;
     this._forAllSingleImages(
@@ -204,12 +202,10 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return this;
   },
 
-  //old from rasterlayer
   getTimeRange: function () {
     return [this.options.from, this.options.to];
   },
 
-  //old from rasterlayer
   setTimeRange: function (from, to) {
     this.options.from = from;
     this.options.to = to;
@@ -217,19 +213,16 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return this;
   },
 
-  //old from rasterlayer
   metadata: function (callback, context) {
     this.service.metadata(callback, context);
     return this;
   },
 
-  //old from rasterlayer
   authenticate: function (token) {
     this.service.authenticate(token);
     return this;
   },
 
-  //old
   _getPopupData: function (e) {
     var callback = L.Util.bind(function (error, featureCollection, response) {
       if (error) { return; } // we really can't do anything here but authenticate or requesterror will fire
@@ -253,7 +246,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     this._lastClick = e.latlng;
   },
 
-  //old from rasterlayer
   _renderPopup: function (latlng, error, results, response) {
     latlng = L.latLng(latlng);
     if (this._shouldRenderPopup && this._lastClick.equals(latlng)) {
@@ -265,7 +257,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     }
   },
   
-  //old from rasterlayer
   bindPopup: function (fn, popupOptions) {
     this._shouldRenderPopup = false;
     this._lastClick = false;
@@ -278,7 +269,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return this;
   },
   
-  //old from rasterlayer
   unbindPopup: function () {
     if (this._map) {
       this._map.closePopup(this._popup);
@@ -289,18 +279,20 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return this;
   },
 
-  //old from rasterlayer
   _resetPopupState: function (e) {
     this._shouldRenderPopup = false;
     this._lastClick = e.latlng;
   },
 
-  //fixed
   _initImage: function () {
     var img = L.DomUtil.create('img','leaflet-image-layer ' + (this._zoomAnimated ? 'leaflet-zoom-animated' : ''));
     img.onselectstart = L.Util.falseFn;
     img.onmousemove = L.Util.falseFn;
-    img.style.zIndex = this.options.zIndex;
+
+    if (this.options.zIndex){
+      img.style.zIndex = this.options.zIndex;
+    }
+    
     img.alt = this.options.alt;
     
     if (this.options.opacity < 1) {
@@ -310,20 +302,65 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return img;
   },
 
-  //fixed
   _imageLoaded:function(params){
-    var image = this._setImagePosition(params.image, params.mapParams.position);
+
+    if (params.requestCount != this._requestCount ){
+      delete params.image;
+      return;
+    }
+
+    var image = this._resetImagePosition(params.image);
+
+    var imagesToRemove = [];
+
+    this._forAllSingleImages(
+      function(img){
+        if (img.position.overlaps(image.position)){
+          imagesToRemove.push(img);
+        }
+      }
+    );
                 
     this.getPane(this.options.pane).appendChild(image);
+    if (this.options.interactive) {
+      L.DomUtil.addClass(img, 'leaflet-interactive');
+      this.addInteractiveTarget(img);
+    }
 
     this._singleImages.push(image);
+
+    this._requestCounter.loadedImages++;
+
+    if (this._requestCounter.allImages==this._requestCounter.loadedImages){
+      var bounds = this._map.getBounds();
+      this.fire('load', {
+        bounds: bounds
+      });
+
+      this._forAllSingleImages(
+        function(img){
+          if (!img.position.overlaps(bounds)){
+            imagesToRemove.push(img);
+          }
+        }
+      );
+    }
+
+    //removing useless images
+    for (var i=0;i<imagesToRemove.length;i++){
+      this._removeImage(imagesToRemove[i]);
+      var index = this._singleImages.indexOf(imagesToRemove[i]);
+      if (index!=-1){
+        this._singleImages.splice(index,1);
+      }
+    }
+
   },
 
-  //fixed
-  _setImagePosition:function(image,position){
+  _resetImagePosition:function(image){
     var bounds = new L.Bounds(
-            this._map.latLngToLayerPoint(position.getNorthWest()),
-            this._map.latLngToLayerPoint(position.getSouthEast())),
+            this._map.latLngToLayerPoint(image.position.getNorthWest()),
+            this._map.latLngToLayerPoint(image.position.getSouthEast())),
         size = bounds.getSize();
 
     L.DomUtil.setPosition(image, bounds.min);
@@ -335,12 +372,16 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   },
 
 
-  //fixed
   _renderImages: function (params) {
-    //clear
-    this._forAllSingleImages( function(img) { this.getPane(this.options.pane).removeChild(img); });
+ 
+    if (!this._singleImages){
+      this._singleImages = [];
+    }
 
-    this._singleImages = [];
+    this._incrementRequestCounter(params.length);
+    this.fire('loading', {
+        bounds: this._map.getBounds()
+    });
 
     if (this._map) {
       for (var i=0;i<params.length;i++){
@@ -348,77 +389,26 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
 
         var img = this._initImage();
         img.position = p.position;
-        img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: p });
+        img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: p , requestCount: this._requestCount });
         img.src = p.href;
       }
-
     }
   },
 
-
-  //old from rasterlayer
-  _renderImage: function (url, bounds) {
-    if (this._map) {
-      // create a new image overlay and add it to the map
-      // to start loading the image
-      // opacity is 0 while the image is loading
-      var image = new Overlay(url, bounds, {
-        opacity: 0,
-        crossOrigin: this.options.useCors,
-        alt: this.options.alt,
-        pane: this.options.pane || this.getPane(),
-        interactive: this.options.interactive
-      }).addTo(this._map);
-
-      // once the image loads
-      image.once('load', function (e) {
-        if (this._map) {
-          var newImage = e.target;
-          var oldImage = this._currentImage;
-
-          // if the bounds of this image matches the bounds that
-          // _renderImage was called with and we have a map with the same bounds
-          // hide the old image if there is one and set the opacity
-          // of the new image otherwise remove the new image
-          if (newImage._bounds.equals(bounds) && newImage._bounds.equals(this._map.getBounds())) {
-            this._currentImage = newImage;
-
-            if (this.options.position === 'front') {
-              this.bringToFront();
-            } else {
-              this.bringToBack();
-            }
-
-            if (this._map && this._currentImage._map) {
-              this._currentImage.setOpacity(this.options.opacity);
-            } else {
-              this._currentImage._map.removeLayer(this._currentImage);
-            }
-
-            if (oldImage && this._map) {
-              this._map.removeLayer(oldImage);
-            }
-
-            if (oldImage && oldImage._map) {
-              oldImage._map.removeLayer(oldImage);
-            }
-          } else {
-            this._map.removeLayer(newImage);
-          }
-        }
-
-        this.fire('load', {
-          bounds: bounds
-        });
-      }, this);
-
-      this.fire('loading', {
-        bounds: bounds
-      });
+  _incrementRequestCounter:function(imagesCount){
+    if (!this._requestCounter){
+      this._requestCounter = {
+        count:1
+      };
     }
+    else{
+      this._requestCounter.count++;
+    }
+
+    this._requestCounter.allImages = imagesCount;
+    this._requestCounter.loadedImages = 0;
   },
 
-  //fixed from rasterlayer
   _update: function () {
     if (!this._map) {
       return;
@@ -443,7 +433,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     this._requestExport(params);
   },
 
-  //fixed
   _buildExportParams: function () {
 
     var singleMapParamsArray = [];
@@ -496,7 +485,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return singleMapParamsArray;
   },
 
-  //fixed
   _buildSingleExportParams: function(bounds, size){
     var ne = this._map.options.crs.project(bounds.getNorthEast());
     var sw = this._map.options.crs.project(bounds.getSouthWest());
@@ -547,7 +535,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return params;
   },
 
-  //fixed
   _requestExport: function (params) {
     for(var i=0; i< params.length;i++){
       var singleParam = params[i];
@@ -564,7 +551,13 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     this._renderImages(params);
   },
 
-  //fixed
+  _removeImage: function(img){
+    this.getPane(this.options.pane).removeChild(img); 
+    if (this.options.interactive) {
+      this.removeInteractiveTarget(img);
+    }
+  },
+
   _forAllSingleImages: function(f){
     if (this._singleImages){
       for(var i=0;i<this._singleImages.length;i++){
