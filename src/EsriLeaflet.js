@@ -25,5 +25,6 @@ export { TiledMapLayer, tiledMapLayer } from './Layers/TiledMapLayer';
 export { RasterLayer } from './Layers/RasterLayer';
 export { ImageMapLayer, imageMapLayer } from './Layers/ImageMapLayer';
 export { DynamicMapLayer, dynamicMapLayer } from './Layers/DynamicMapLayer';
+export { DynamicMapLayerAdvanced, dynamicMapLayerAdvanced } from './Layers/DynamicMapLayerAdvanced';
 export { FeatureManager } from './Layers/FeatureLayer/FeatureManager';
 export { FeatureLayer, featureLayer } from './Layers/FeatureLayer/FeatureLayer';
