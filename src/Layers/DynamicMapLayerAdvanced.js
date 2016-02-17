@@ -1,10 +1,9 @@
 import L from 'leaflet';
 import { cleanUrl } from '../Util';
-import {cors} from '../Support';
+import { cors } from '../Support';
 import mapService from '../Services/MapService';
 
 export var DynamicMapLayerAdvanced = L.Layer.extend({
-
   options: {
     opacity: 1,
     position: 'front',
@@ -37,12 +36,11 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   onAdd: function (map) {
     map.on('moveend', this._update, this);
 
-    if ((!this._singleImages) || (this._singleImages.length==0)){
+    if ((!this._singleImages) || (this._singleImages.length === 0)) {
       this._update();
-    }
-    else {
-      this._forAllSingleImages( 
-        function(img) { 
+    } else {
+      this._forAllSingleImages(
+        function (img) {
           this._resetImagePosition(img);
           this.getPane(this.options.pane).appendChild(img);
         }
@@ -56,12 +54,12 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   },
 
   onRemove: function () {
-    this._forAllSingleImages( 
-      function(img) { 
+    this._forAllSingleImages(
+      function (img) {
         if (this.options.interactive) {
           this.removeInteractiveTarget(img);
         }
-        this.getPane(this.options.pane).removeChild(img); 
+        this.getPane(this.options.pane).removeChild(img);
       }
     );
     if (this._popup) {
@@ -87,17 +85,17 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
 
   _animateZoom: function (e) {
     this._forAllSingleImages(
-      function(img){
-        var scale = this._map.getZoomScale(e.zoom),
-        offset = this._map._latLngToNewLayerPoint(img.position.getNorthWest(), e.zoom, e.center);
+      function (img) {
+        var scale = this._map.getZoomScale(e.zoom);
+        var offset = this._map._latLngToNewLayerPoint(img.position.getNorthWest(), e.zoom, e.center);
         L.DomUtil.setTransform(img, offset, scale);
       }
-    );  
+    );
   },
 
   _reset: function () {
     this._forAllSingleImages(
-      function(img){
+      function (img) {
         this._resetImagePosition(img);
       }
     );
@@ -158,9 +156,9 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   bringToFront: function () {
     this.options.position = 'front';
     this._forAllSingleImages(
-      function(img) { 
+      function (img) {
         L.DomUtil.toFront(img);
-       }
+      }
     );
     return this;
   },
@@ -168,17 +166,17 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   bringToBack: function () {
     this.options.position = 'back';
     this._forAllSingleImages(
-      function(img) { 
+      function (img) {
         L.DomUtil.toBack(img);
-       }
+      }
     );
     return this;
   },
 
-  setZIndex: function(zIndex){
+  setZIndex: function (zIndex) {
     this.options.zIndex = zIndex;
     this._forAllSingleImages(
-      function(img){
+      function (img) {
         img.style.zIndex = zIndex;
       }
     );
@@ -195,9 +193,9 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   setOpacity: function (opacity) {
     this.options.opacity = opacity;
     this._forAllSingleImages(
-      function(img) { 
+      function (img) {
         L.DomUtil.setOpacity(img, this.options.opacity);
-       }
+      }
     );
     return this;
   },
@@ -256,7 +254,7 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
       }
     }
   },
-  
+
   bindPopup: function (fn, popupOptions) {
     this._shouldRenderPopup = false;
     this._lastClick = false;
@@ -268,7 +266,7 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     }
     return this;
   },
-  
+
   unbindPopup: function () {
     if (this._map) {
       this._map.closePopup(this._popup);
@@ -285,26 +283,25 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   },
 
   _initImage: function () {
-    var img = L.DomUtil.create('img','leaflet-image-layer ' + (this._zoomAnimated ? 'leaflet-zoom-animated' : ''));
+    var img = L.DomUtil.create('img', 'leaflet-image-layer ' + (this._zoomAnimated ? 'leaflet-zoom-animated' : ''));
     img.onselectstart = L.Util.falseFn;
     img.onmousemove = L.Util.falseFn;
 
-    if (this.options.zIndex){
+    if (this.options.zIndex) {
       img.style.zIndex = this.options.zIndex;
     }
-    
+
     img.alt = this.options.alt;
-    
+
     if (this.options.opacity < 1) {
-        L.DomUtil.setOpacity(img, this.options.opacity);
+      L.DomUtil.setOpacity(img, this.options.opacity);
     }
-    
+
     return img;
   },
 
-  _imageLoaded:function(params){
-
-    if (params.requestCount != this._requestCount ){
+  _imageLoaded: function (params) {
+    if (params.requestCount !== this._requestCount) {
       delete params.image;
       return;
     }
@@ -314,94 +311,90 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     var imagesToRemove = [];
 
     this._forAllSingleImages(
-      function(img){
-        if (img.position.overlaps(image.position)){
+      function (img) {
+        if (img.position.overlaps(image.position)) {
           imagesToRemove.push(img);
         }
       }
     );
-                
+
     this.getPane(this.options.pane).appendChild(image);
     if (this.options.interactive) {
-      L.DomUtil.addClass(img, 'leaflet-interactive');
-      this.addInteractiveTarget(img);
+      L.DomUtil.addClass(image, 'leaflet-interactive');
+      this.addInteractiveTarget(image);
     }
 
     this._singleImages.push(image);
 
     this._requestCounter.loadedImages++;
 
-    if (this._requestCounter.allImages==this._requestCounter.loadedImages){
+    if (this._requestCounter.allImages === this._requestCounter.loadedImages) {
       var bounds = this._map.getBounds();
       this.fire('load', {
         bounds: bounds
       });
 
       this._forAllSingleImages(
-        function(img){
-          if (!img.position.overlaps(bounds)){
+        function (img) {
+          if (!img.position.overlaps(bounds)) {
             imagesToRemove.push(img);
           }
         }
       );
     }
 
-    //removing useless images
-    for (var i=0;i<imagesToRemove.length;i++){
+    // removing useless images
+    for (var i = 0; i < imagesToRemove.length; i++) {
       this._removeImage(imagesToRemove[i]);
       var index = this._singleImages.indexOf(imagesToRemove[i]);
-      if (index!=-1){
-        this._singleImages.splice(index,1);
+      if (index !== -1) {
+        this._singleImages.splice(index, 1);
       }
     }
-
   },
 
-  _resetImagePosition:function(image){
+  _resetImagePosition: function (image) {
     var bounds = new L.Bounds(
-            this._map.latLngToLayerPoint(image.position.getNorthWest()),
-            this._map.latLngToLayerPoint(image.position.getSouthEast())),
-        size = bounds.getSize();
+      this._map.latLngToLayerPoint(image.position.getNorthWest()),
+      this._map.latLngToLayerPoint(image.position.getSouthEast()));
+    var size = bounds.getSize();
 
     L.DomUtil.setPosition(image, bounds.min);
 
-    image.style.width  = size.x + 'px';
+    image.style.width = size.x + 'px';
     image.style.height = size.y + 'px';
 
     return image;
   },
 
-
   _renderImages: function (params) {
- 
-    if (!this._singleImages){
+    if (!this._singleImages) {
       this._singleImages = [];
     }
 
     this._incrementRequestCounter(params.length);
     this.fire('loading', {
-        bounds: this._map.getBounds()
+      bounds: this._map.getBounds()
     });
 
     if (this._map) {
-      for (var i=0;i<params.length;i++){
+      for (var i = 0; i < params.length; i++) {
         var p = params[i];
 
         var img = this._initImage();
         img.position = p.position;
-        img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: p , requestCount: this._requestCount });
+        img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: p, requestCount: this._requestCount });
         img.src = p.href;
       }
     }
   },
 
-  _incrementRequestCounter:function(imagesCount){
-    if (!this._requestCounter){
+  _incrementRequestCounter: function (imagesCount) {
+    if (!this._requestCounter) {
       this._requestCounter = {
-        count:1
+        count: 1
       };
-    }
-    else{
+    } else {
       this._requestCounter.count++;
     }
 
@@ -434,7 +427,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   },
 
   _buildExportParams: function () {
-
     var singleMapParamsArray = [];
 
     var wholeBounds = this._map.getBounds();
@@ -452,32 +444,29 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     sign = (sign === 0) ? 1 : sign;
     var coef = sign * Math.floor(Math.abs(d));
 
-    while (newXmax < max.lng)
-    {
-      newXmax =  360 * (coef + i) + sign*180;
-      
-      if (newXmax > max.lng)
-      {
-          newXmax = max.lng;
+    while (newXmax < max.lng) {
+      newXmax = 360 * (coef + i) + sign * 180;
+
+      if (newXmax > max.lng) {
+        newXmax = max.lng;
       }
 
       var normXMin = newXmin;
       var normXMax = newXmax;
 
-      if ((newXmin<-180) | (newXmax>180))
-      {
-          var d2 = Math.floor((newXmin + 180) / 360);
-          normXMin -= d2 * 360;
-          normXMax -= d2 * 360;
+      if ((newXmin < -180) | (newXmax > 180)) {
+        var d2 = Math.floor((newXmin + 180) / 360);
+        normXMin -= d2 * 360;
+        normXMax -= d2 * 360;
       }
 
-      var singleBounds =  L.latLngBounds(L.latLng(min.lat, normXMin), L.latLng(max.lat, normXMax));
+      var singleBounds = L.latLngBounds(L.latLng(min.lat, normXMin), L.latLng(max.lat, normXMax));
       var positionBounds = L.latLngBounds(L.latLng(min.lat, newXmin), L.latLng(max.lat, newXmax));
-      var width = (wholeSize.x* ( (newXmax- newXmin)/(max.lng - min.lng) ));
+      var width = (wholeSize.x * ((newXmax - newXmin) / (max.lng - min.lng)));
       var singleSize = { x: width, y: wholeSize.y };
       var singleExportParams = this._buildSingleExportParams(singleBounds, singleSize);
-      
-      singleMapParamsArray.push({position:positionBounds,  bounds: singleBounds, size: singleSize, params: singleExportParams });
+
+      singleMapParamsArray.push({ position: positionBounds, bounds: singleBounds, size: singleSize, params: singleExportParams });
       newXmin = newXmax;
       i++;
     }
@@ -485,7 +474,7 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return singleMapParamsArray;
   },
 
-  _buildSingleExportParams: function(bounds, size){
+  _buildSingleExportParams: function (bounds, size) {
     var ne = this._map.options.crs.project(bounds.getNorthEast());
     var sw = this._map.options.crs.project(bounds.getSouthWest());
     var sr = parseInt(this._map.options.crs.code.split(':')[1], 10);
@@ -536,10 +525,10 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   },
 
   _requestExport: function (params) {
-    for(var i=0; i< params.length;i++){
+    for (var i = 0; i < params.length; i++) {
       var singleParam = params[i];
       if (this.options.f === 'json') {
-        this.service.request('export', currentParam.params, function (error, response) {
+        this.service.request('export', singleParam.params, function (error, response) {
           if (error) { return; } // we really can't do anything here but authenticate or requesterror will fire
           singleParam.href = response.href;
         }, this);
@@ -551,18 +540,18 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     this._renderImages(params);
   },
 
-  _removeImage: function(img){
-    this.getPane(this.options.pane).removeChild(img); 
+  _removeImage: function (img) {
+    this.getPane(this.options.pane).removeChild(img);
     if (this.options.interactive) {
       this.removeInteractiveTarget(img);
     }
   },
 
-  _forAllSingleImages: function(f){
-    if (this._singleImages){
-      for(var i=0;i<this._singleImages.length;i++){
-        f.call(this,this._singleImages[i]);
-      } 
+  _forAllSingleImages: function (f) {
+    if (this._singleImages) {
+      for (var i = 0; i < this._singleImages.length; i++) {
+        f.call(this, this._singleImages[i]);
+      }
     }
   }
 
