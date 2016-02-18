@@ -297,6 +297,10 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
       L.DomUtil.setOpacity(img, this.options.opacity);
     }
 
+    if (this.options.useCors) {
+      img.crossOrigin = '';
+    }
+
     return img;
   },
 
@@ -367,28 +371,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     return image;
   },
 
-  _renderImages: function (params) {
-    if (!this._singleImages) {
-      this._singleImages = [];
-    }
-
-    this._incrementRequestCounter(params.length);
-    this.fire('loading', {
-      bounds: this._map.getBounds()
-    });
-
-    if (this._map) {
-      for (var i = 0; i < params.length; i++) {
-        var p = params[i];
-
-        var img = this._initImage();
-        img.position = p.position;
-        img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: p, requestCount: this._requestCount });
-        img.src = p.href;
-      }
-    }
-  },
-
   _incrementRequestCounter: function (imagesCount) {
     if (!this._requestCounter) {
       this._requestCounter = {
@@ -424,6 +406,39 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     var params = this._buildExportParams();
 
     this._requestExport(params);
+  },
+
+  _requestExport: function (params) {
+    if (!this._singleImages) {
+      this._singleImages = [];
+    }
+
+    this._incrementRequestCounter(params.length);
+    this.fire('loading', {
+      bounds: this._map.getBounds()
+    });
+
+    for (var i = 0; i < params.length; i++) {
+      var singleParam = params[i];
+      if (this.options.f === 'json') {
+        this.service.request('export', singleParam.params, function (error, response) {
+          if (error) { return; } // we really can't do anything here but authenticate or requesterror will fire
+          singleParam.href = response.href;
+          this._renderImage(singleParam);
+        }, this);
+      } else {
+        singleParam.params.f = 'image';
+        singleParam.href = this.options.url + 'export' + L.Util.getParamString(singleParam.params);
+        this._renderImage(singleParam);
+      }
+    }
+  },
+
+  _renderImage: function (params) {
+    var img = this._initImage();
+    img.position = params.position;
+    img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: params, requestCount: this._requestCount });
+    img.src = params.href;
   },
 
   _buildExportParams: function () {
@@ -522,22 +537,6 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
     }
 
     return params;
-  },
-
-  _requestExport: function (params) {
-    for (var i = 0; i < params.length; i++) {
-      var singleParam = params[i];
-      if (this.options.f === 'json') {
-        this.service.request('export', singleParam.params, function (error, response) {
-          if (error) { return; } // we really can't do anything here but authenticate or requesterror will fire
-          singleParam.href = response.href;
-        }, this);
-      } else {
-        singleParam.params.f = 'image';
-        singleParam.href = this.options.url + 'export' + L.Util.getParamString(singleParam.params);
-      }
-    }
-    this._renderImages(params);
   },
 
   _removeImage: function (img) {
