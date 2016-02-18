@@ -305,7 +305,7 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   },
 
   _imageLoaded: function (params) {
-    if (params.requestCount !== this._requestCount) {
+    if (params.requestCount !== this._requestCounter.count) {
       delete params.image;
       return;
     }
@@ -420,12 +420,13 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
 
     for (var i = 0; i < params.length; i++) {
       var singleParam = params[i];
+      singleParam.requestCount = this._requestCounter.count;
       if (this.options.f === 'json') {
         this.service.request('export', singleParam.params, function (error, response) {
           if (error) { return; } // we really can't do anything here but authenticate or requesterror will fire
-          singleParam.href = response.href;
-          this._renderImage(singleParam);
-        }, this);
+          this.param.href = response.href;
+          this.context._renderImage(this.param);
+        }, { context: this, param: singleParam });
       } else {
         singleParam.params.f = 'image';
         singleParam.href = this.options.url + 'export' + L.Util.getParamString(singleParam.params);
@@ -437,7 +438,7 @@ export var DynamicMapLayerAdvanced = L.Layer.extend({
   _renderImage: function (params) {
     var img = this._initImage();
     img.position = params.position;
-    img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: params, requestCount: this._requestCount });
+    img.onload = L.bind(this._imageLoaded, this, { image: img, mapParams: params, requestCount: params.requestCount });
     img.src = params.href;
   },
 
